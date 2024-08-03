@@ -1,0 +1,9 @@
+[package]
+name = "sudoku"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ferris-says = "0.3.1"
+serde = "1.0.204"
+serde_json = "1.0.122"
