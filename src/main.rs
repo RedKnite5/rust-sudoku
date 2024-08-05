@@ -4,6 +4,7 @@ use std::fs;
 use core::str::FromStr;
 use std::num::IntErrorKind;
 use std::path::Path;
+use std::mem;
 
 #[derive(Debug)]
 struct CustomParseError {
@@ -26,7 +27,7 @@ impl From<(IntErrorKind, char)> for CustomParseError {
 }
 
 
-
+#[derive(Debug, Clone)]
 struct Board {
     size: u8,
     arr: [[HashSet<u8>; 9]; 9]
@@ -94,6 +95,56 @@ impl FromStr for Board {
     }
 }
 
+/*
+fn transpose(board: &Board) -> Board {
+    let mut new_board: Board = Default::default();
+    for i_u8 in 0..board.size {
+        let i = usize::from(i_u8);
+        for j_u8 in 0..board.size {
+            let j = usize::from(j_u8);
+            new_board.arr[i][j] = board.arr[j][i].clone();
+        }
+    }
+    return new_board;
+}
+*/
+
+
+fn transpose(board: &Board) -> Board {
+    let mut new_board = (*board).clone();
+    for i_u8 in 1..board.size {
+        let i = usize::from(i_u8);
+        for j in 0..i {
+            let (x, y) = new_board.arr.split_at_mut(i);
+            mem::swap(&mut x[j][i], &mut y[0][j]);
+        }
+    }
+    return new_board;
+}
+
+fn detailed_display(board: &Board) -> String {
+    let mut s: String = "—".repeat(4 * usize::from(board.size) + 1) + "\n";
+    for i_u8 in 0..board.size {
+        let i = usize::from(i_u8);
+        
+        for x in 0..3 {
+            s = s + "|";
+            for j_u8 in 0..board.size {
+                let j = usize::from(j_u8);
+                for y in 0..3 {
+                    let num = (3*x + y + 1).to_string();
+                    s = s + if board.arr[i][j].contains(&(3*x + y + 1)) {&num} else {" "};
+                }
+                s = s + "|";
+            }
+            s = s + "\n";
+        }
+        s = s + "—".repeat(4 * usize::from(board.size) + 1).as_str() + "\n";
+    }
+
+    s
+}
+
 
 fn read_json<P: AsRef<Path>>(path: P) -> serde_json::Value {
     let data = fs::read_to_string(path)
@@ -115,7 +166,13 @@ fn main() {
     chars.next_back();
     let stripped = chars.as_str();
 
-    println!("{}", Board::from_str(stripped).expect("err"));
+    let board = Board::from_str(stripped).expect("err");
+
+    println!("{}", board);
+    println!("{:?}", board);
+
+    println!("{}", detailed_display(&board));
+    println!("{}", detailed_display(&transpose(&board)));
     
 
 
