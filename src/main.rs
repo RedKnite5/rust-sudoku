@@ -8,6 +8,7 @@ use std::path::Path;
 use std::mem;
 use std::slice::IterMut;
 use std::slice::Iter;
+use std::error::Error;
 
 #[derive(Debug)]
 struct CustomParseError {
@@ -21,7 +22,7 @@ impl fmt::Display for CustomParseError {
     }
 }
 
-impl std::error::Error for CustomParseError {}
+impl Error for CustomParseError {}
 
 impl From<(IntErrorKind, char)> for CustomParseError {
     fn from((kind, character): (IntErrorKind, char)) -> Self {
@@ -30,7 +31,18 @@ impl From<(IntErrorKind, char)> for CustomParseError {
 }
 
 
-fn get_only_elem<T>(set: &HashSet<T>) -> &T {
+#[derive(Debug)]
+struct FindBifricateCellError;
+
+impl Error for FindBifricateCellError {}
+
+impl fmt::Display for FindBifricateCellError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Could not find square with less than 2 options")
+    }
+}
+
+fn get_rand_elem<T>(set: &HashSet<T>) -> &T {
     set.iter().next().unwrap()
 }
 
@@ -73,7 +85,7 @@ impl fmt::Display for Board {
         let res = self.arr.iter().map(
             |row| row.iter().map(
                 |set| match set.len() {
-                    1 => get_only_elem(set).to_string(),
+                    1 => get_rand_elem(set).to_string(),
                     _ => "0".to_string()}
                 ).collect::<Vec<String>>()
                 .join("") + "\n"
@@ -148,7 +160,7 @@ fn invalid(board: &Board) -> bool {
 }
 
 fn finished(board: &Board) -> bool {
-    // solved or invalid
+    // solved
     !board.to_string().contains('0')
 }
 
@@ -180,7 +192,7 @@ fn find_known(board: &Board) -> Vec<Cell> {
     for (i, row) in board.into_iter().enumerate() {
         for (j, s) in row.iter().enumerate() {
             if s.len() == 1 {
-                let num = get_only_elem(s);
+                let num = get_rand_elem(s);
                 ret.push(Cell::new(*num, j, i));
             }
         }
@@ -270,9 +282,87 @@ fn full_elim(board: &mut Board) -> bool {
     return ret;
 }
 
+fn find_bifrication_candidate(board: &Board) -> Result<(usize, usize), FindBifricateCellError> {
+    let mut cell = (board.arr[0][0].len(), 0, 0);
+    if cell.0 == 2 {
+        return Ok((cell.1, cell.2));
+    }
+
+    //println!("finding cand\n{}", detailed_display(&board));
+
+    for (i, row) in board.into_iter().enumerate() {
+        for (j, square) in row.iter().enumerate() {
+            println!("cell: {:?}, square len: {:?}", cell, square.len());
+            if cell.0 == 1 && square.len() > 1 {
+                cell = (square.len(), j, i);
+            } else if cell.0 > 2 && 1 < square.len() && square.len() < cell.0 {
+                println!("cell: {:?}, new cell: {:?}", cell, (square.len(), j, i));
+                cell = (square.len(), j, i);
+
+            }
+
+            if cell.0 == 2 {
+                return Ok((cell.1, cell.2));
+            }
+
+        }
+    }
+
+    if cell.0 < 2 {
+        println!("panicing, cell: {:?}", cell);
+        return Err(FindBifricateCellError);
+    }
+
+    return Ok((cell.1, cell.2));
+}
+
+fn bifricate(board: &mut Board) {
+    let mut test_board = board.clone();
+
+    let test_res = find_bifrication_candidate(&test_board);
+    println!("Found: {:?}", test_res);
+
+    match test_res {
+        Ok(test) => {
+            let set = test_board.arr[test.1][test.0].clone();
+
+            let elem = get_rand_elem(&set);
+        
+            test_board.arr[test.1][test.0].remove(elem);
+        
+            
+            println!("bifricating on {}, {}", test.0, test.1);
+        
+            solve(&mut test_board);
+        
+            if invalid(&test_board) {
+                board.arr[test.1][test.0] = HashSet::from([*elem]);
+            } else if finished(&test_board) {
+                board.arr = test_board.arr;
+            } else {
+                panic!("Bifricate failed! No looping");
+            }
+        }
+        Err(_) => {
+            return;
+        }
+    }
+
+}
 
 
+fn solve(board: &mut Board) {
+    loop {
+        full_elim(board);
+        if finished(board) || invalid(board) {
+            return;
+        }
+        println!("Enter");
+        bifricate(board);
+        println!("Xit");
+    }
 
+}
 
 fn sqrtceil(x: u8) -> u8 {
     let rt = (x as f64).sqrt().floor() as u8;
@@ -320,7 +410,7 @@ fn main() {
 
     let json = read_json("./src/boards.json");
 
-    let easy = json["hard"].to_string();
+    let easy = json["evil"].to_string();
 
     let mut chars = easy.chars();
     chars.next();
@@ -331,7 +421,7 @@ fn main() {
 
     println!("{}", board);
 
-    full_elim(&mut board);
+    solve(&mut board);
 
     println!("{}", board);
 
