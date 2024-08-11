@@ -292,11 +292,11 @@ fn find_bifrication_candidate(board: &Board) -> Result<(usize, usize), FindBifri
 
     for (i, row) in board.into_iter().enumerate() {
         for (j, square) in row.iter().enumerate() {
-            println!("cell: {:?}, square len: {:?}", cell, square.len());
+            //println!("cell: {:?}, square len: {:?}", cell, square.len());
             if cell.0 == 1 && square.len() > 1 {
                 cell = (square.len(), j, i);
             } else if cell.0 > 2 && 1 < square.len() && square.len() < cell.0 {
-                println!("cell: {:?}, new cell: {:?}", cell, (square.len(), j, i));
+                //println!("cell: {:?}, new cell: {:?}", cell, (square.len(), j, i));
                 cell = (square.len(), j, i);
 
             }
@@ -309,7 +309,7 @@ fn find_bifrication_candidate(board: &Board) -> Result<(usize, usize), FindBifri
     }
 
     if cell.0 < 2 {
-        println!("panicing, cell: {:?}", cell);
+        //println!("panicing, cell: {:?}", cell);
         return Err(FindBifricateCellError);
     }
 
@@ -320,7 +320,7 @@ fn bifricate(board: &mut Board) {
     let mut test_board = board.clone();
 
     let test_res = find_bifrication_candidate(&test_board);
-    println!("Found: {:?}", test_res);
+    //println!("Found: {:?}", test_res);
 
     match test_res {
         Ok(test) => {
@@ -331,7 +331,7 @@ fn bifricate(board: &mut Board) {
             test_board.arr[test.1][test.0].remove(elem);
         
             
-            println!("bifricating on {}, {}", test.0, test.1);
+            //println!("bifricating on {}, {}", test.0, test.1);
         
             solve(&mut test_board);
         
@@ -357,9 +357,9 @@ fn solve(board: &mut Board) {
         if finished(board) || invalid(board) {
             return;
         }
-        println!("Enter");
+        //println!("Enter");
         bifricate(board);
-        println!("Xit");
+        //println!("Xit");
     }
 
 }
